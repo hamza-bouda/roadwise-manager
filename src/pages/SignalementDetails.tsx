@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  fetchSignalementById, 
+  fetchSignalement, 
   updateSignalementStatus,
   fetchMaintenanceById
 } from '@/services/dataService';
@@ -40,6 +40,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Separator } from '@/components/ui/separator';
 import CreateMaintenanceForm from '@/components/CreateMaintenanceForm';
 
 const SignalementDetails = () => {
@@ -50,7 +51,7 @@ const SignalementDetails = () => {
   
   const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false);
 
-  // Récupérer les détails du signalement
+  // Fetch signalement details
   const { 
     data: signalement, 
     isLoading, 
@@ -59,11 +60,11 @@ const SignalementDetails = () => {
     refetch
   } = useQuery({
     queryKey: ['signalement', id],
-    queryFn: () => fetchSignalementById(id || ''),
+    queryFn: () => fetchSignalement(id || ''),
     enabled: !!id,
   });
 
-  // Récupérer la maintenance associée si elle existe
+  // Fetch related maintenance if exists
   const { 
     data: maintenance, 
     isLoading: isLoadingMaintenance 
@@ -73,7 +74,7 @@ const SignalementDetails = () => {
     enabled: !!signalement?.maintenanceId,
   });
 
-  // Mutation pour mettre à jour le statut du signalement
+  // Mutation for updating signalement status
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: SignalementStatus }) => 
       updateSignalementStatus(id, status),

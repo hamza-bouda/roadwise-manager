@@ -62,7 +62,7 @@ const formSchema = z.object({
   repairType: z.string().min(1, {
     message: 'Le type de réparation est requis',
   }),
-  estimatedDuration: z.string().transform(Number).refine(val => !isNaN(val) && val > 0, {
+  estimatedDuration: z.string().transform(val => Number(val)).refine(val => !isNaN(val) && val > 0, {
     message: 'La durée estimée doit être un nombre positif',
   }),
   notes: z.string().optional(),
