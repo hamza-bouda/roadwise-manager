@@ -37,8 +37,13 @@ import { exportSignalementsToCSV } from '@/services/dataService';
 
 const SignalementsList = () => {
   const { toast } = useToast();
-  const [filters, setFilters] = useState({
-    status: '',
+  const [filters, setFilters] = useState<{
+    status: SignalementStatus | undefined;
+    severity: string;
+    dateFrom: string;
+    dateTo: string;
+  }>({
+    status: undefined,
     severity: '',
     dateFrom: '',
     dateTo: '',
@@ -52,12 +57,19 @@ const SignalementsList = () => {
   });
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    if (key === 'status') {
+      setFilters(prev => ({ 
+        ...prev, 
+        [key]: value ? value as SignalementStatus : undefined 
+      }));
+    } else {
+      setFilters(prev => ({ ...prev, [key]: value }));
+    }
   };
 
   const clearFilters = () => {
     setFilters({
-      status: '',
+      status: undefined,
       severity: '',
       dateFrom: '',
       dateTo: '',
@@ -158,14 +170,14 @@ const SignalementsList = () => {
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
               <Select 
-                value={filters.status} 
-                onValueChange={(value) => handleFilterChange('status', value)}
+                value={filters.status || "all"} 
+                onValueChange={(value) => handleFilterChange('status', value === "all" ? "" : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Tous les statuts" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous les statuts</SelectItem>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
                   <SelectItem value="new">Nouveau</SelectItem>
                   <SelectItem value="inProgress">En cours</SelectItem>
                   <SelectItem value="repaired">Réparé</SelectItem>
@@ -176,14 +188,14 @@ const SignalementsList = () => {
             <div className="space-y-2">
               <Label htmlFor="severity">Gravité</Label>
               <Select 
-                value={filters.severity} 
-                onValueChange={(value) => handleFilterChange('severity', value)}
+                value={filters.severity || "all"} 
+                onValueChange={(value) => handleFilterChange('severity', value === "all" ? "" : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Toutes les gravités" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les gravités</SelectItem>
+                  <SelectItem value="all">Toutes les gravités</SelectItem>
                   <SelectItem value="low">Faible</SelectItem>
                   <SelectItem value="medium">Moyenne</SelectItem>
                   <SelectItem value="high">Élevée</SelectItem>

@@ -1,54 +1,153 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardStats, fetchSignalements, fetchMaintenances } from '@/services/dataService';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { fetchStats, fetchRecentSignalements } from '@/services/dataService';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Metric, Text } from '@/components/ui/metric';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Calendar, CheckCircle, Clock, Wrench } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell, 
   Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from 'recharts';
 
+const STATUS_COLORS = {
+  new: '#FFB74D',       // Orange
+  inProgress: '#64B5F6',  // Blue
+  repaired: '#81C784',    // Green
+};
+
+const SEVERITY_COLORS = {
+  low: '#81C784',
+  medium: '#FFB74D',
+  high: '#E57373',
+};
+
 const Dashboard = () => {
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['dashboardStats'],
-    queryFn: fetchDashboardStats,
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['stats'],
+    queryFn: fetchStats,
   });
 
-  const { data: signalements, isLoading: isLoadingSignalements } = useQuery({
-    queryKey: ['signalements'],
-    queryFn: fetchSignalements,
+  const { data: recentSignalements } = useQuery({
+    queryKey: ['recentSignalements'],
+    queryFn: fetchRecentSignalements,
   });
 
-  const { data: maintenances, isLoading: isLoadingMaintenances } = useQuery({
-    queryKey: ['maintenances'],
-    queryFn: fetchMaintenances,
-  });
+  const renderStatCards = () => {
+    if (isLoading) {
+      return Array(4).fill(null).map((_, i) => (
+        <Card key={i} className="shadow-sm">
+          <CardHeader>
+            <CardTitle><Skeleton className="h-4 w-32" /></CardTitle>
+            <CardDescription><Skeleton className="h-3 w-64" /></CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-full" />
+          </CardContent>
+        </Card>
+      ));
+    }
 
-  const isLoading = isLoadingStats || isLoadingSignalements || isLoadingMaintenances;
+    return (
+      <>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Signalements Totaux</CardTitle>
+            <CardDescription>Nombre total de signalements</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Metric>{stats?.totalSignalements}</Metric>
+          </CardContent>
+        </Card>
 
-  // Couleurs pour les graphiques
-  const COLORS = ['#0088FE', '#FFBB28', '#00C49F', '#FF8042'];
-  const STATUS_COLORS = {
-    new: '#FF8042',
-    inProgress: '#FFBB28',
-    repaired: '#00C49F',
-    scheduled: '#0088FE',
-    completed: '#00C49F'
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Signalements Récents</CardTitle>
+            <CardDescription>Signalements des 7 derniers jours</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Metric>{stats?.recentSignalements}</Metric>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Taux de Réparation</CardTitle>
+            <CardDescription>Pourcentage de signalements réparés</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Metric>
+              {stats?.repairRate}%
+            </Metric>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Maintenances en Cours</CardTitle>
+            <CardDescription>Nombre de maintenances actuellement en cours</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Metric>{stats?.activeMaintenances}</Metric>
+          </CardContent>
+        </Card>
+      </>
+    );
   };
 
-  // Pour le graphique en camembert des statuts
+  const renderLoadingState = () => (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {Array(3).fill(null).map((_, i) => (
+        <Card key={i} className="shadow-sm">
+          <CardHeader>
+            <CardTitle><Skeleton className="h-4 w-32" /></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[200px] w-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  // For severity bar chart
+  const getSeverityData = () => {
+    if (!stats) return [];
+
+    return [
+      { name: 'Faible', value: stats.signalementsBySeverity.low, color: SEVERITY_COLORS.low },
+      { name: 'Moyenne', value: stats.signalementsBySeverity.medium, color: SEVERITY_COLORS.medium },
+      { name: 'Élevée', value: stats.signalementsBySeverity.high, color: SEVERITY_COLORS.high },
+    ];
+  };
+
+  // For maintenance status pie chart
+  const getMaintenanceStatusData = () => {
+    if (!stats) return [];
+
+    return [
+      { name: 'Planifiée', value: stats.maintenancesByStatus.scheduled, color: STATUS_COLORS.new },
+      { name: 'En cours', value: stats.maintenancesByStatus.inProgress, color: STATUS_COLORS.inProgress },
+      { name: 'Terminée', value: stats.maintenancesByStatus.completed, color: STATUS_COLORS.repaired },
+    ];
+  };
+
+  const getRecentSignalements = () => {
+    return recentSignalements || [];
+  };
+
+  // For status pie chart
   const getStatusData = () => {
     if (!stats) return [];
     
@@ -58,124 +157,6 @@ const Dashboard = () => {
       { name: 'Réparés', value: stats.signalementsByStatus.repaired, color: STATUS_COLORS.repaired },
     ];
   };
-
-  // Pour le graphique en barres de gravité
-  const getSeverityData = () => {
-    if (!stats) return [];
-    
-    return [
-      { name: 'Faible', value: stats.signalementsBySeverity.low },
-      { name: 'Moyenne', value: stats.signalementsBySeverity.medium },
-      { name: 'Élevée', value: stats.signalementsBySeverity.high },
-    ];
-  };
-
-  // Pour le graphique des statuts de maintenance
-  const getMaintenanceStatusData = () => {
-    if (!stats) return [];
-    
-    return [
-      { name: 'Planifiées', value: stats.maintenancesByStatus.scheduled, color: STATUS_COLORS.scheduled },
-      { name: 'En cours', value: stats.maintenancesByStatus.inProgress, color: STATUS_COLORS.inProgress },
-      { name: 'Terminées', value: stats.maintenancesByStatus.completed, color: STATUS_COLORS.completed },
-    ];
-  };
-
-  // Récents signalements
-  const getRecentSignalements = () => {
-    if (!signalements) return [];
-    
-    return [...signalements]
-      .sort((a, b) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime())
-      .slice(0, 5);
-  };
-
-  // Prochaines maintenances
-  const getUpcomingMaintenances = () => {
-    if (!maintenances) return [];
-    
-    return [...maintenances]
-      .filter(m => m.status !== 'completed')
-      .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
-      .slice(0, 5);
-  };
-
-  const renderStatCards = () => {
-    if (isLoading) {
-      return Array(4).fill(0).map((_, index) => (
-        <Card key={index} className="shadow-sm">
-          <CardHeader className="pb-2">
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-8 w-20" />
-          </CardContent>
-        </Card>
-      ));
-    }
-
-    if (!stats) return null;
-
-    return (
-      <>
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Signalements ce mois</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.signalementsThisMonth}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Nids-de-poule réparés</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.signalementsByStatus.repaired}</div>
-            <p className="text-xs text-muted-foreground">
-              sur {stats.totalSignalements} signalements
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Maintenances en attente</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.maintenancesByStatus.scheduled}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Maintenances terminées</CardTitle>
-            <Wrench className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.maintenancesByStatus.completed}</div>
-            <p className="text-xs text-muted-foreground">
-              ce mois: {stats.maintenancesCompletedThisMonth}
-            </p>
-          </CardContent>
-        </Card>
-      </>
-    );
-  };
-
-  const renderLoadingState = () => (
-    <div className="space-y-4">
-      <Skeleton className="h-[300px] w-full" />
-      <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-[200px] w-full" />
-        <Skeleton className="h-[200px] w-full" />
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-8">
@@ -287,7 +268,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="space-y-2">
                   {getRecentSignalements().map((signalement) => (
-                    <Alert key={signalement.id} variant="outline">
+                    <Alert key={signalement.id}>
                       <AlertTriangle className="h-4 w-4" />
                       <AlertTitle className="text-sm font-medium">
                         Signalement {signalement.id} - 

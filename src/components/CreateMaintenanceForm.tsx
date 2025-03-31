@@ -43,7 +43,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MaintenanceStatus } from '@/types';
 
-// Schema de validation pour le formulaire
+// Validation schema for the form
 const formSchema = z.object({
   title: z.string().min(5, {
     message: 'Le titre doit contenir au moins 5 caractères',
@@ -78,19 +78,19 @@ const CreateMaintenanceForm = ({ signalementId, onSuccess }: Props) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   
-  // Récupérer les signalements
+  // Fetch signalements
   const { data: signalements, isLoading: isLoadingSignalements } = useQuery({
     queryKey: ['signalements'],
     queryFn: fetchSignalements,
   });
   
-  // Récupérer les équipes
+  // Fetch teams
   const { data: teams, isLoading: isLoadingTeams } = useQuery({
     queryKey: ['teams'],
     queryFn: fetchTeams,
   });
   
-  // Mutation pour créer une maintenance
+  // Mutation to create maintenance
   const createMaintenanceMutation = useMutation({
     mutationFn: createMaintenance,
     onSuccess: () => {
@@ -111,7 +111,7 @@ const CreateMaintenanceForm = ({ signalementId, onSuccess }: Props) => {
     },
   });
   
-  // Initialiser le formulaire
+  // Initialize the form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -127,17 +127,24 @@ const CreateMaintenanceForm = ({ signalementId, onSuccess }: Props) => {
     },
   });
   
-  // Soumettre le formulaire
+  // Submit the form
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     createMaintenanceMutation.mutate({
-      ...values,
+      title: values.title,
+      description: values.description || '',
+      scheduledDate: values.scheduledDate,
+      status: values.status,
+      teamId: values.teamId,
+      signalementIds: values.signalementIds,
+      repairType: values.repairType,
       estimatedDuration: Number(values.estimatedDuration),
+      notes: values.notes || '',
     });
   };
   
   const isLoading = isLoadingSignalements || isLoadingTeams || createMaintenanceMutation.isPending;
   
-  // Filtrer les signalements qui n'ont pas déjà une maintenance assignée
+  // Filter signalements that don't already have a maintenance assigned
   const availableSignalements = signalements?.filter(s => !s.maintenanceId || s.id === signalementId) || [];
   
   return (

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchMaintenances, fetchTeams, updateMaintenanceStatus, exportMaintenancesToCSV } from '@/services/dataService';
@@ -46,7 +45,6 @@ const Maintenance = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
-  // Récupérer les maintenances
   const { 
     data: maintenances, 
     isLoading: isLoadingMaintenances 
@@ -55,7 +53,6 @@ const Maintenance = () => {
     queryFn: fetchMaintenances,
   });
   
-  // Récupérer les équipes
   const { 
     data: teams, 
     isLoading: isLoadingTeams 
@@ -64,7 +61,6 @@ const Maintenance = () => {
     queryFn: fetchTeams,
   });
   
-  // Mutation pour mettre à jour le statut de maintenance
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: MaintenanceStatus }) => 
       updateMaintenanceStatus(id, status),
@@ -93,7 +89,6 @@ const Maintenance = () => {
     try {
       const csvData = await exportMaintenancesToCSV();
       
-      // Créer un blob et générer un lien de téléchargement
       const blob = new Blob([csvData], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -117,7 +112,6 @@ const Maintenance = () => {
     }
   };
   
-  // Filtrer les maintenances basées sur le statut
   const filteredMaintenances = maintenances?.filter(maintenance => {
     if (statusFilter && maintenance.status !== statusFilter) {
       return false;
@@ -125,7 +119,6 @@ const Maintenance = () => {
     return true;
   });
   
-  // Regrouper les maintenances par mois pour la vue calendrier
   const getMaintenancesByMonth = () => {
     if (!maintenances) return {};
     
@@ -145,13 +138,11 @@ const Maintenance = () => {
     return grouped;
   };
   
-  // Fonction d'aide pour obtenir le nom de l'équipe
   const getTeamName = (teamId: string) => {
     const team = teams?.find(t => t.id === teamId);
     return team ? team.name : 'Équipe inconnue';
   };
   
-  // Aide pour les badges de statut
   const getStatusBadge = (status: MaintenanceStatus) => {
     switch (status) {
       case 'scheduled':
@@ -222,12 +213,12 @@ const Maintenance = () => {
                 </div>
                 
                 <div className="mt-2 sm:mt-0">
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Tous les statuts" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tous les statuts</SelectItem>
+                      <SelectItem value="all">Tous les statuts</SelectItem>
                       <SelectItem value="scheduled">Planifiées</SelectItem>
                       <SelectItem value="inProgress">En cours</SelectItem>
                       <SelectItem value="completed">Terminées</SelectItem>
